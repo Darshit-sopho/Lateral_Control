@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class SupportFiles:
 
     def __init__(self):
@@ -13,10 +14,9 @@ class SupportFiles:
         Ts = 0.02
         x_dot = 20
 
-        self.constants = [g, m, Iz,Caf, Car, lf, lr, Ts, x_dot]
+        self.constants = [g, m, Iz, Caf, Car, lf, lr, Ts, x_dot]
 
     def trajectory_generator(self, t):
-        Ts = self.constants[7]
         x_dot = self.constants[8]
 
         x_tr = t * x_dot
@@ -43,14 +43,14 @@ class SupportFiles:
         return psint, x_tr, y_tr
 
     def newe_states(self, state, u1):
-        m = self.constants[0]
-        Iz = self.constants[1]
-        Caf = self.constants[2]
-        Car = self.constants[3]
-        lf = self.constants[4]
-        lr = self.constants[5]
-        T = self.constants[6]
-        xdot = self.constants[7]
+        m = self.constants[1]
+        Iz = self.constants[2]
+        Caf = self.constants[3]
+        Car = self.constants[4]
+        lf = self.constants[5]
+        lr = self.constants[6]
+        T = self.constants[7]
+        xdot = self.constants[8]
         y_dot = state[0]
         psai = state[1]
         psi_dot = state[2]
