@@ -44,7 +44,8 @@ def newe_states(states, U1):
 
 # Trajectory formation
 x_tr = t * x_dot
-y_tr = -9*np.ones(len(x_tr))
+# y_tr = -9*np.ones(len(x_tr))
+y_tr = 9*np.tanh(t-t[-1]/2)
 dx_tr = x_tr[1:len(x_tr)] - x_tr[0:len(x_tr) - 1]
 dy_tr = y_tr[1:len(y_tr)] - y_tr[0:len(y_tr) - 1]
 psi = np.zeros(len(x_tr))
@@ -62,17 +63,18 @@ for i in range(1, len(psint)):
         psint[i] = psint[i - 1] + dpsi[i - 1]
 
 Utotal = np.zeros(len(t))
-state_hist = [0, 0, 0, y_tr[0] + 20]
+state_hist = [0, psint[0], 0, y_tr[0]]
 statestotal = np.zeros((len(t), len(state_hist)))
 statestotal[0, :] = state_hist
+y_err = np.zeros(len(y_tr))
 
 # PID Control Loop
-Kp_yaw = 140
-Kd_yaw = 60
-Ki_yaw = 100
+Kp_yaw = 7
+Kd_yaw = 0
+Ki_yaw = 0
 Kp_Y = 7
-Kd_Y = 3
-Ki_Y = 5
+Kd_Y = 0
+Ki_Y = 0
 for i in range(0, len(t)-1):
     Ut = Utotal[i]
     if i == 0:
@@ -85,7 +87,7 @@ for i in range(0, len(t)-1):
         e_dot_y = (e_yf - e_y) / Ts
         e_int_y = e_y + (e_yf + e_y) * Ts / 2
         U_y = Kp_Y * e_yf + Kd_Y * e_dot_y + Ki_Y * e_int_y
-
+        y_err[i] = e_yf
         e_yaw = psint[i - 1] - old_states[1]
         e_yawf = psint[i] - state_hist[1]
         e_dot_yaw = (e_yawf - e_yaw) / Ts
@@ -112,9 +114,13 @@ plt.show()
 
 # Comparison of real and reference yaw angles
 plt.plot(x_tr, psint, 'b')
-plt.plot(x_tr, statestotal[:,1], 'r')
+plt.plot(x_tr, statestotal[:, 1], 'r')
 plt.show()
 
 # Steering angle values
-plt.plot(x_tr, Utotal)
+plt.plot(x_tr, Utotal*180/np.pi)
+plt.show()
+
+# Error in y position
+plt.plot(x_tr, y_err)
 plt.show()
