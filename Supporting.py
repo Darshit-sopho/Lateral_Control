@@ -152,3 +152,35 @@ class SupportFiles:
             rows = np.concatenate((temp1, R, temp2), axis=1)
             Rbar = np.concatenate((Rbar, rows), axis=0)
         Rbar = np.delete(Rbar, 0, axis=0)
+        Cbar = np.zeros((1, B.shape[1] * Hz))
+        for i in range(Hz):
+            tempa = np.zeros((B.shape[0], 1))
+            tempo = np.zeros((B.shape[0], 1))
+            for j in range(Hz):
+                if j == i:
+                    tempb = B
+                elif j < i:
+                    tempaa = np.linalg.matrix_power(A, (i-j))
+                    tempaa = np.matmul(tempaa, B)
+                    tempa = np.concatenate((tempa, tempaa), axis=1)
+                else:
+                    tempoo = np.zeros((B.shape[0], B.shape[1]))
+                    tempo = np.concatenate((tempo, tempoo), axis=1)
+            tempa = np.delete(tempa, 0, axis=1)
+            tempo = np.delete(tempo, 0, axis=1)
+            rows = np.concatenate((tempa, tempb, tempo), axis=1)
+            Cbar = np.concatenate((Cbar, rows), axis=0)
+        Cbar = np.delete(Cbar, 0, axis=0)
+        Ahat = np.zeros((1, A.shape[1]))
+        for i in range(Hz):
+            Aele = np.linalg.matrix_power(A, i + 1)
+            Ahat = np.concatenate((Ahat, Aele), axis=0)
+        Ahat = np.delete(Ahat, 0, axis=0)
+        Hf = np.matmul(np.transpose(Cbar), Qbar)
+        Hf = np.matmul(Hf, Cbar)
+        Hbar = Hf + Rbar
+
+        Ff = np.matmul(np.transpose(Ahat), Qbar)
+        Ff = np.matmul(Ff, Cbar)
+        Fs = np.matmul(-Tbar, Cbar)
+        Fbar = np.concatenate((Ff, Fs), axis=0)
