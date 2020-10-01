@@ -58,11 +58,9 @@ class SupportFiles:
         sub_loop = 30  # Chop Ts into 30 pieces
         for k in range(0, sub_loop):
             # Compute the the derivatives of the states
-            y_dot_dot = -(2 * Caf + 2 * Car) / (m * xdot) * y_dot + (
-                    -xdot - (2 * Caf * lf - 2 * Car * lr) / (m * xdot)) * psi_dot + 2 * Caf / m * u1
+            y_dot_dot = -(2 * Caf + 2 * Car) / (m * xdot) * y_dot + (-xdot - (2 * Caf * lf - 2 * Car * lr) / (m * xdot)) * psi_dot + 2 * Caf / m * u1
             psi_dot = psi_dot
-            psi_dot_dot = -(2 * lf * Caf - 2 * lr * Car) / (Iz * xdot) * y_dot - (
-                    2 * lf ** 2 * Caf + 2 * lr ** 2 * Car) / (Iz * xdot) * psi_dot + 2 * lf * Caf / Iz * u1
+            psi_dot_dot = -(2 * lf * Caf - 2 * lr * Car) / (Iz * xdot) * y_dot - (2 * lf ** 2 * Caf + 2 * lr ** 2 * Car) / (Iz * xdot) * psi_dot + 2 * lf * Caf / Iz * u1
             Y_dot = np.sin(psai) * xdot + np.cos(psai) * y_dot
 
             # Update the state values with new state derivatives
@@ -78,3 +76,79 @@ class SupportFiles:
         new_states[3] = Y
 
         return new_states
+
+    def state_matrices(self):
+        m = self.constants[1]
+        Iz = self.constants[2]
+        Caf = self.constants[3]
+        Car = self.constants[4]
+        lf = self.constants[5]
+        lr = self.constants[6]
+        T = self.constants[7]
+        xdot = self.constants[8]
+        a = -(2*Caf + 2*Car)/(m*xdot)
+        b = (-xdot - (2 * Caf * lf - 2 * Car * lr) / (m * xdot))
+        c = -(2 * lf * Caf - 2 * lr * Car) / (Iz * xdot)
+        d = - (2 * lf ** 2 * Caf + 2 * lr ** 2 * Car) / (Iz * xdot)
+        e = 2 * Caf / m
+        f = 2 * lf * Caf / Iz
+
+        Ai = np.array([[a, 0, b, 0], [0, 0, 1, 0], [c, 0, d, 0], [1, xdot, 0, 0]])
+        Bi = np.array([[e], [0], [f], [0]])
+        Ci = np.array([[0, 1, 0, 0], [0, 0, 0, 1]])
+
+        Ad = np.identity(Ai.shape[0]) + Ai*T
+        Bd = Bi*T
+        Cd = Ci
+        return Ad, Bd, Cd
+
+    def aug_states(self, A, B, C):
+        A_aug = np.concatenate((A, B), axis=1)
+        temp = np.array([[0, 0, 0, 0, 1]])
+        A_aug = np.concatenate((A_aug, temp), axis=0)
+        temp = np.array([[1]])
+        B_aug = np.concatenate((B, temp), axis=0)
+        C_aug=np.concatenate((C,np.zeros((np.size(C,0),np.size(B,1)))),axis=1)
+
+        return A_aug, B_aug, C_aug
+
+    def final_matrices(self, A, B, C, S, Q, R, Hz):
+        CQC = np.matmul(np.transpose(C), Q)
+        CQC = np.matmul(CQC, C)
+        CSC = np.matmul(np.transpose(C), S)
+        CSC = np.matmul(CSC, C)
+        QC = np.matmul(Q, C)
+        SC = np.matmul(S, C)
+        Qbar = np.zeros((1, CQC.shape[1] * Hz))
+        for i in range(0, Hz):
+            if i == Hz - 1:
+                temp1 = np.zeros((CSC.shape[0], (i) * CSC.shape[1]))
+                temp2 = np.zeros((CSC.shape[0], (Hz - i - 1) * CSC.shape[1]))
+                rows = np.concatenate((temp1, CSC, temp2), axis=1)
+                Qbar = np.concatenate((Qbar, rows), axis=0)
+            else:
+                temp1 = np.zeros((CQC.shape[0], (i) * CQC.shape[1]))
+                temp2 = np.zeros((CQC.shape[0], (Hz - i - 1) * CQC.shape[1]))
+                rows = np.concatenate((temp1, CQC, temp2), axis=1)
+                Qbar = np.concatenate((Qbar, rows), axis=0)
+        Qbar = np.delete(Qbar, 0, axis=0)
+        Tbar = np.zeros((1, QC.shape[1] * Hz))
+        for i in range(0, Hz):
+            if i == Hz - 1:
+                temp1 = np.zeros((SC.shape[0], (i) * SC.shape[1]))
+                temp2 = np.zeros((SC.shape[0], (Hz - i - 1) * SC.shape[1]))
+                rows = np.concatenate((temp1, SC, temp2), axis=1)
+                Tbar = np.concatenate((Tbar, rows), axis=0)
+            else:
+                temp1 = np.zeros((QC.shape[0], (i) * QC.shape[1]))
+                temp2 = np.zeros((QC.shape[0], (Hz - i - 1) * QC.shape[1]))
+                rows = np.concatenate((temp1, QC, temp2), axis=1)
+                Tbar = np.concatenate((Tbar, rows), axis=0)
+        Tbar = np.delete(Tbar, 0, axis=0)
+        Rbar = np.zeros((1, R.shape[1] * Hz))
+        for i in range(0, Hz):
+            temp1 = np.zeros((R.shape[0], (i) * R.shape[1]))
+            temp2 = np.zeros((R.shape[0], (Hz - i - 1) * R.shape[1]))
+            rows = np.concatenate((temp1, R, temp2), axis=1)
+            Rbar = np.concatenate((Rbar, rows), axis=0)
+        Rbar = np.delete(Rbar, 0, axis=0)
