@@ -20,9 +20,9 @@ class SupportFiles:
         x_dot = self.constants[8]
 
         x_tr = t * x_dot
-        # y_tr = -9*np.ones(len(x_tr))
+        y_tr = -9*np.ones(len(x_tr))
         # y_tr = 9*np.tanh(t-t[-1]/2)
-        y_tr = 9 * np.sin(t)
+        # y_tr = 9 * np.sin(t)
 
         dx_tr = x_tr[1:len(x_tr)] - x_tr[0:len(x_tr) - 1]
         dy_tr = y_tr[1:len(y_tr)] - y_tr[0:len(y_tr) - 1]
@@ -102,17 +102,13 @@ class SupportFiles:
         Cd = Ci
         return Ad, Bd, Cd
 
-    def aug_states(self, A, B, C):
-        A_aug = np.concatenate((A, B), axis=1)
+    def final_matrices(self, Ad, Bd, Cd, S, Q, R, Hz):
+        A = np.concatenate((Ad, Bd), axis=1)
         temp = np.array([[0, 0, 0, 0, 1]])
-        A_aug = np.concatenate((A_aug, temp), axis=0)
+        A = np.concatenate((A, temp), axis=0)
         temp = np.array([[1]])
-        B_aug = np.concatenate((B, temp), axis=0)
-        C_aug=np.concatenate((C,np.zeros((np.size(C,0),np.size(B,1)))),axis=1)
-
-        return A_aug, B_aug, C_aug
-
-    def final_matrices(self, A, B, C, S, Q, R, Hz):
+        B = np.concatenate((Bd, temp), axis=0)
+        C = np.concatenate((Cd, np.zeros((np.size(Cd, 0), np.size(Bd, 1)))), axis=1)
         CQC = np.matmul(np.transpose(C), Q)
         CQC = np.matmul(CQC, C)
         CSC = np.matmul(np.transpose(C), S)
@@ -120,40 +116,33 @@ class SupportFiles:
         QC = np.matmul(Q, C)
         SC = np.matmul(S, C)
         Qbar = np.zeros((1, CQC.shape[1] * Hz))
+        Tbar = np.zeros((1, QC.shape[1] * Hz))
+        Rbar = np.zeros((1, R.shape[1] * Hz))
+        Cbar = np.zeros((1, B.shape[1] * Hz))
+        Ahat = np.zeros((1, A.shape[1]))
         for i in range(0, Hz):
             if i == Hz - 1:
                 temp1 = np.zeros((CSC.shape[0], (i) * CSC.shape[1]))
                 temp2 = np.zeros((CSC.shape[0], (Hz - i - 1) * CSC.shape[1]))
                 rows = np.concatenate((temp1, CSC, temp2), axis=1)
                 Qbar = np.concatenate((Qbar, rows), axis=0)
+                tempt1 = np.zeros((SC.shape[0], (i) * SC.shape[1]))
+                tempt2 = np.zeros((SC.shape[0], (Hz - i - 1) * SC.shape[1]))
+                rowst = np.concatenate((tempt1, SC, tempt2), axis=1)
+                Tbar = np.concatenate((Tbar, rowst), axis=0)
             else:
                 temp1 = np.zeros((CQC.shape[0], (i) * CQC.shape[1]))
                 temp2 = np.zeros((CQC.shape[0], (Hz - i - 1) * CQC.shape[1]))
                 rows = np.concatenate((temp1, CQC, temp2), axis=1)
                 Qbar = np.concatenate((Qbar, rows), axis=0)
-        Qbar = np.delete(Qbar, 0, axis=0)
-        Tbar = np.zeros((1, QC.shape[1] * Hz))
-        for i in range(0, Hz):
-            if i == Hz - 1:
-                temp1 = np.zeros((SC.shape[0], (i) * SC.shape[1]))
-                temp2 = np.zeros((SC.shape[0], (Hz - i - 1) * SC.shape[1]))
-                rows = np.concatenate((temp1, SC, temp2), axis=1)
-                Tbar = np.concatenate((Tbar, rows), axis=0)
-            else:
-                temp1 = np.zeros((QC.shape[0], (i) * QC.shape[1]))
-                temp2 = np.zeros((QC.shape[0], (Hz - i - 1) * QC.shape[1]))
-                rows = np.concatenate((temp1, QC, temp2), axis=1)
-                Tbar = np.concatenate((Tbar, rows), axis=0)
-        Tbar = np.delete(Tbar, 0, axis=0)
-        Rbar = np.zeros((1, R.shape[1] * Hz))
-        for i in range(0, Hz):
-            temp1 = np.zeros((R.shape[0], (i) * R.shape[1]))
-            temp2 = np.zeros((R.shape[0], (Hz - i - 1) * R.shape[1]))
-            rows = np.concatenate((temp1, R, temp2), axis=1)
-            Rbar = np.concatenate((Rbar, rows), axis=0)
-        Rbar = np.delete(Rbar, 0, axis=0)
-        Cbar = np.zeros((1, B.shape[1] * Hz))
-        for i in range(Hz):
+                tempt1 = np.zeros((QC.shape[0], (i) * QC.shape[1]))
+                tempt2 = np.zeros((QC.shape[0], (Hz - i - 1) * QC.shape[1]))
+                rowst = np.concatenate((tempt1, QC, tempt2), axis=1)
+                Tbar = np.concatenate((Tbar, rowst), axis=0)
+            tempr1 = np.zeros((R.shape[0], (i) * R.shape[1]))
+            tempr2 = np.zeros((R.shape[0], (Hz - i - 1) * R.shape[1]))
+            rowsr = np.concatenate((tempr1, R, tempr2), axis=1)
+            Rbar = np.concatenate((Rbar, rowsr), axis=0)
             tempa = np.zeros((B.shape[0], 1))
             tempo = np.zeros((B.shape[0], 1))
             for j in range(Hz):
@@ -168,14 +157,16 @@ class SupportFiles:
                     tempo = np.concatenate((tempo, tempoo), axis=1)
             tempa = np.delete(tempa, 0, axis=1)
             tempo = np.delete(tempo, 0, axis=1)
-            rows = np.concatenate((tempa, tempb, tempo), axis=1)
-            Cbar = np.concatenate((Cbar, rows), axis=0)
-        Cbar = np.delete(Cbar, 0, axis=0)
-        Ahat = np.zeros((1, A.shape[1]))
-        for i in range(Hz):
+            rowsc = np.concatenate((tempa, tempb, tempo), axis=1)
+            Cbar = np.concatenate((Cbar, rowsc), axis=0)
             Aele = np.linalg.matrix_power(A, i + 1)
             Ahat = np.concatenate((Ahat, Aele), axis=0)
+        Qbar = np.delete(Qbar, 0, axis=0)
+        Tbar = np.delete(Tbar, 0, axis=0)
+        Rbar = np.delete(Rbar, 0, axis=0)
+        Cbar = np.delete(Cbar, 0, axis=0)
         Ahat = np.delete(Ahat, 0, axis=0)
+
         Hf = np.matmul(np.transpose(Cbar), Qbar)
         Hf = np.matmul(Hf, Cbar)
         Hbar = Hf + Rbar
@@ -184,3 +175,5 @@ class SupportFiles:
         Ff = np.matmul(Ff, Cbar)
         Fs = np.matmul(-Tbar, Cbar)
         Fbar = np.concatenate((Ff, Fs), axis=0)
+
+        return Hbar, Fbar
